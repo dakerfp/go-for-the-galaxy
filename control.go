@@ -74,27 +74,25 @@ func main() {
 	draw(&game)
 
 	var cmd *Command
-	from := ""
+	var from *Planet
 	for {
 		select {
 		case ev := <-eventQueue:
-			var line string
 			switch ev.Type {
 			case termbox.EventKey:
 				switch ev.Key {
 				case termbox.KeyEsc, termbox.KeyCtrlC, termbox.KeyCtrlD:
 					return
 				}
-				line = string(ev.Ch)
 
 			case termbox.EventMouse:
 				if ev.Key == termbox.MouseRelease {
-					if from == "" {
+					if from == nil {
 						from = game.Probe(ev.MouseX, ev.MouseY)
 					} else {
-						line = game.Probe(ev.MouseX, ev.MouseY)
-						cmd = &Command{from, line, 50}
-						from = ""
+						to := game.Probe(ev.MouseX, ev.MouseY)
+						cmd = &Command{from.Id, to.Id, 50}
+						from = nil
 					}
 				}
 			}

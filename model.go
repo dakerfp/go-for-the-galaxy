@@ -31,6 +31,7 @@ func dist(a Vec2, b Vec2) float64 {
 }
 
 type Planet struct {
+	Id     string
 	Center Vec2
 	Size   int
 	Units  int
@@ -110,15 +111,16 @@ func (g *Game) Tick(cmd *Command) {
 	}
 }
 
-func (g *Game) Probe(x int, y int) string {
+func (g *Game) Probe(x int, y int) *Planet {
 	mouse := Vec2{float32(x), float32(y)}
-	min := ""
+	var min *Planet
 	minDist := 100000.0
 	for label, planet := range g.Planets {
 		d := dist(mouse, planet.Center)
 		if d < minDist {
 			minDist = d
-			min = label
+			min = planet
+			min.Id = label // XXX
 		}
 	}
 	return min
