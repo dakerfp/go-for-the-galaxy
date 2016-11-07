@@ -29,7 +29,7 @@ func draw(g *Game) {
 		y := int(planet.Center.Y)
 		termbox.SetCell(x, y, rune(name[0]), playerColors[planet.Player], backgroundColor)
 
-		s := strconv.Itoa(planet.Units)
+		s := strconv.Itoa(int(planet.Units))
 		for _, r := range s {
 			x++
 			termbox.SetCell(x, y, r, playerColors[planet.Player], backgroundColor)

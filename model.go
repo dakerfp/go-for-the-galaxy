@@ -33,15 +33,15 @@ func dist(a Vec2, b Vec2) float64 {
 type Planet struct {
 	Id     string
 	Center Vec2
-	Size   int
-	Units  int
+	Size   float32
+	Units  float32
 	Player Player
 }
 
 type Fleet struct {
 	Player Player
 	To     string
-	Units  int
+	Units  float32
 	Pos    Vec2
 	Vel    Vec2
 	Dest   Vec2
@@ -58,7 +58,7 @@ type Game struct {
 type Command struct {
 	From  string
 	To    string
-	Units int
+	Units float32
 }
 
 func (g *Game) Tick(cmd *Command) {
@@ -66,17 +66,19 @@ func (g *Game) Tick(cmd *Command) {
 		from, ok := g.Planets[cmd.From]
 		to, ok2 := g.Planets[cmd.To]
 		if ok && ok2 {
-			fleet := Fleet{
-				Player: from.Player,
-				To:     cmd.To,
-				Pos:    from.Center,
-				Units:  cmd.Units,
-				Vel:    mult(sub(to.Center, from.Center), 0.01),
-				Dest:   to.Center,
+			if cmd.Units < from.Units {
+				fleet := Fleet{
+					Player: from.Player,
+					To:     cmd.To,
+					Pos:    from.Center,
+					Units:  cmd.Units,
+					Vel:    mult(sub(to.Center, from.Center), 0.01),
+					Dest:   to.Center,
+				}
+				g.Fleets = append(g.Fleets, fleet)
+				from.Units -= cmd.Units
+				g.Planets[cmd.From] = from
 			}
-			g.Fleets = append(g.Fleets, fleet)
-			from.Units -= cmd.Units
-			g.Planets[cmd.From] = from
 		}
 	}
 
@@ -106,7 +108,7 @@ func (g *Game) Tick(cmd *Command) {
 
 	for _, planet := range g.Planets {
 		if planet.Player != 0 {
-			planet.Units += planet.Size
+			planet.Units += planet.Size * 0.05 // Speed multiplier
 		}
 	}
 }
