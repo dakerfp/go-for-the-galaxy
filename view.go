@@ -37,3 +37,10 @@ func draw(g *Game) {
 	}
 	termbox.Flush()
 }
+
+func wsDraw(listeners []GameListener, g *Game) {
+	for _, listener := range listeners {
+		listener <- g
+	}
+}
+

@@ -1,20 +1,28 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
+	"io"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/nsf/termbox-go"
+	"golang.org/x/net/websocket"
 )
 
 const animationSpeed = 10 * time.Millisecond
 
+type GameListener chan *Game
+
 func main() {
-	err := termbox.Init()
-	if err != nil {
-		panic(err)
-	}
-	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputMouse)
+	// err := termbox.Init()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer termbox.Close()
+	// termbox.SetInputMode(termbox.InputMouse)
 
 	game := Game{
 		Planets: map[string]*Planet{
@@ -64,19 +72,83 @@ func main() {
 		fallingTimer: time.NewTicker(animationSpeed),
 	}
 
-	eventQueue := make(chan termbox.Event)
-	go func() {
-		for {
-			eventQueue <- termbox.PollEvent()
+	commandEvent := make(chan *Command)
+	newListeners := make(chan GameListener, 10)
+
+	http.Handle("/room", websocket.Handler(func(ws *websocket.Conn) {
+		listener := make(GameListener)
+		newListeners <- listener
+
+		go func() {
+			cmd := &Command{}
+			dec := json.NewDecoder(ws)
+			for {
+				err := dec.Decode(cmd)
+				if err == io.EOF {
+					return
+				} else if err != nil {
+					log.Println(err)
+					return
+				}
+				commandEvent <- cmd
+			}
+		}()
+
+		enc := json.NewEncoder(ws)
+
+		for game := range listener {
+			if err := enc.Encode(&game); err != nil {
+				log.Println(err)
+				return
+			}
 		}
+	}))
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, `<html>
+<head>
+</head>
+<body>
+<h1>Game</h1>
+<p id="text"></p>
+<script>
+var socket = new WebSocket("ws://localhost:8888/room");
+var text = document.getElementById("text");
+socket.onmessage = function (e) {
+  console.log(e.data);
+  text.innerText = e.data + "\n";
+};
+</script>
+</body>
+</html>
+`)
+	})
+
+	go func() {
+	    err := http.ListenAndServe(":8888", nil)
+	    if err != nil {
+	        panic("ListenAndServe: " + err.Error())
+	    }
 	}()
 
-	draw(&game)
+	eventQueue := make(chan termbox.Event)
+	// go func() {
+	// 	for {
+	// 		eventQueue <- termbox.PollEvent()
+	// 	}
+	// }()
+
+	// draw(&game)
 
 	var cmd *Command
 	var from *Planet
+
+	var listeners []GameListener
 	for {
 		select {
+		case listener := <- newListeners:
+			listeners = append(listeners, listener)
+
 		case ev := <-eventQueue:
 			switch ev.Type {
 			case termbox.EventKey:
@@ -97,12 +169,15 @@ func main() {
 				}
 			}
 
+		case cmd = <-commandEvent:
+			continue
+
 		case <-game.fallingTimer.C:
 			game.Tick(cmd)
 			cmd = nil
 
 		default:
-			draw(&game)
+			wsDraw(listeners, &game) // draw(&game)
 			time.Sleep(animationSpeed)
 		}
 	}
