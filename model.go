@@ -142,7 +142,9 @@ func (g *Game) Tick(cmds []Command) {
 func (g *Game) CountPlanetsByPlayer() map[Player]int {
 	count := make(map[Player]int)
 	for _, planet := range g.Planets {
-		count[planet.Player] += 1
+		if planet.Player != 0 {
+			count[planet.Player] += 1
+		}
 	}
 	return count
 }
