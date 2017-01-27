@@ -14,7 +14,7 @@ var playerColors = []termbox.Attribute{
 	termbox.ColorRed,
 }
 
-func draw(g *Game) {
+func termboxDraw(g *Game) {
 	termbox.Clear(backgroundColor, backgroundColor)
 	for _, fleet := range g.Fleets {
 		if fleet.Dead {
@@ -37,10 +37,3 @@ func draw(g *Game) {
 	}
 	termbox.Flush()
 }
-
-func wsDraw(listeners []GameListener, g *Game) {
-	for _, listener := range listeners {
-		listener <- g
-	}
-}
-

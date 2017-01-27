@@ -2,7 +2,6 @@ package main
 
 import (
 	"math"
-	"time"
 )
 
 type Player int
@@ -30,6 +29,20 @@ func dist(a Vec2, b Vec2) float64 {
 	return math.Sqrt(float64(dx*dx + dy*dy))
 }
 
+func size(v Vec2) float64 {
+	dx := v.X
+	dy := v.Y
+	return math.Sqrt(float64(dx*dx + dy*dy))
+}
+
+func norm(v Vec2) Vec2 {
+	s := float32(size(v))
+	if s <= 0 {
+		return Vec2{}
+	}
+	return Vec2{v.X / s, v.Y / s}
+}
+
 type Planet struct {
 	Id     string
 	Center Vec2
@@ -49,37 +62,49 @@ type Fleet struct {
 }
 
 type Game struct {
-	Planets      map[string]*Planet
-	Fleets       []Fleet
-	Winner       Player
-	fallingTimer *time.Ticker
+	Planets map[string]*Planet
+	Fleets  []Fleet
+	Winner  Player
 }
 
 type Command struct {
-	From  string
-	To    string
-	Units float32
+	From   string
+	To     string
+	Units  float32
+	Player Player
 }
 
-func (g *Game) Tick(cmd *Command) {
-	if cmd != nil {
+func (g *Game) Tick(cmds []Command) {
+	for _, cmd := range cmds {
 		from, ok := g.Planets[cmd.From]
-		to, ok2 := g.Planets[cmd.To]
-		if ok && ok2 {
-			if cmd.Units < from.Units {
-				fleet := Fleet{
-					Player: from.Player,
-					To:     cmd.To,
-					Pos:    from.Center,
-					Units:  cmd.Units,
-					Vel:    mult(sub(to.Center, from.Center), 0.01),
-					Dest:   to.Center,
-				}
-				g.Fleets = append(g.Fleets, fleet)
-				from.Units -= cmd.Units
-				g.Planets[cmd.From] = from
-			}
+		if !ok {
+			continue
 		}
+
+		to, ok := g.Planets[cmd.To]
+		if !ok {
+			continue
+		}
+
+		if cmd.Player != from.Player {
+			continue
+		}
+
+		if cmd.Units > from.Units {
+			continue
+		}
+
+		fleet := Fleet{
+			Player: from.Player,
+			To:     cmd.To,
+			Pos:    from.Center,
+			Units:  cmd.Units,
+			Vel:    mult(norm(sub(to.Center, from.Center)), 0.1),
+			Dest:   to.Center,
+		}
+		g.Fleets = append(g.Fleets, fleet)
+		from.Units -= cmd.Units
+		g.Planets[cmd.From] = from
 	}
 
 	oldFleets := g.Fleets
@@ -92,8 +117,9 @@ func (g *Game) Tick(cmd *Command) {
 		}
 		planet, ok := g.Planets[fleet.To]
 		if !ok {
-			panic(cmd.To)
+			panic(fleet)
 		}
+
 		if fleet.Player == planet.Player {
 			planet.Units += fleet.Units
 		} else {
@@ -111,6 +137,14 @@ func (g *Game) Tick(cmd *Command) {
 			planet.Units += planet.Size * 0.05 // Speed multiplier
 		}
 	}
+}
+
+func (g *Game) CountPlanetsByPlayer() map[Player]int {
+	count := make(map[Player]int)
+	for _, planet := range g.Planets {
+		count[planet.Player] += 1
+	}
+	return count
 }
 
 func (g *Game) Probe(x int, y int) *Planet {
