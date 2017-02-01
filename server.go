@@ -23,7 +23,7 @@ func readCommands(r io.Reader, cmds chan Command) {
 	}
 }
 
-func serveGames(port uint) {
+func startGameServer(port uint) {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return
@@ -40,44 +40,39 @@ func serveGames(port uint) {
 		if err != nil {
 			panic(err)
 		}
-		go serveGame(conn1, conn2, gameId)
+		go serveGameRoom(gameId, conn1, conn2)
 	}
 }
 
-func serveGame(conn1 io.ReadWriteCloser, conn2 io.ReadWriteCloser, gameId int) error {
+func serveGameRoom(gameId int, conns ...io.ReadWriteCloser) error {
 	defer log.Println("Ending game ", gameId)
-	defer conn1.Close()
-	defer conn2.Close()
+	defer func() {
+		for _, conn := range conns {
+			defer conn.Close()
+		}
+	}()
 
 	log.Println("Starting game ", gameId)
 
 	model := NewRandomMap(60, 50)
-	enc1 := gob.NewEncoder(conn1)
-	enc2 := gob.NewEncoder(conn2)
-
-	if err := enc1.Encode(Player(1)); err != nil {
-		return err
-	}
-	if err := enc2.Encode(Player(2)); err != nil {
-		return err
-	}
-
-	draw := func(game *Game) error {
-		if err := enc1.Encode(*game); err != nil {
+	encs := make([]*gob.Encoder, len(conns))
+	cmdQueue := make(chan Command)
+	for i, conn := range conns {
+		enc := gob.NewEncoder(conn)
+		encs[i] = enc
+		if err := enc.Encode(Player(i + 1)); err != nil {
 			return err
 		}
-		if err := enc2.Encode(*game); err != nil {
-			return err
+
+		go readCommands(conn, cmdQueue)
+	}
+
+	return model.Run(cmdQueue, func(game *Game) error {
+		for _, enc := range encs {
+			if err := enc.Encode(*game); err != nil {
+				return err
+			}
 		}
 		return nil
-	}
-
-	cmdQueue := make(chan Command)
-
-	go readCommands(conn1, cmdQueue)
-	go readCommands(conn2, cmdQueue)
-
-	model.Run(cmdQueue, draw)
-
-	return nil
+	})
 }

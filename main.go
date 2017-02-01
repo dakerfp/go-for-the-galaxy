@@ -18,7 +18,7 @@ func main() {
 	flag.Parse()
 
 	if *serverFlag {
-		serveGames(*portFlag)
+		startGameServer(*portFlag)
 		return
 	}
 
