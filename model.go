@@ -115,6 +115,7 @@ func (g *Game) Tick(cmds []Command) {
 			newFleets = append(newFleets, fleet)
 			continue
 		}
+
 		planet, ok := g.Planets[fleet.To]
 		if !ok {
 			panic(fleet)
