@@ -6,10 +6,9 @@ import (
 	"strconv"
 )
 
-var from *Planet
-
 func termboxInput(player Player, game *Game, cmds chan Command) {
 	defer close(cmds)
+	var from *Planet
 	for {
 		ev := termbox.PollEvent()
 		switch ev.Type {

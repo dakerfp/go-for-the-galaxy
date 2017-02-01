@@ -45,21 +45,22 @@ func serveGames(port uint) {
 	}
 }
 
-func serveGame(conn1 io.ReadWriteCloser, conn2 io.ReadWriteCloser, gameId int) {
+func serveGame(conn1 io.ReadWriteCloser, conn2 io.ReadWriteCloser, gameId int) error {
 	defer log.Println("Ending game ", gameId)
+	defer conn1.Close()
+	defer conn2.Close()
+
 	log.Println("Starting game ", gameId)
 
-	// model := NewSquareGameMap()
 	model := NewRandomMap(60, 50)
-
 	enc1 := gob.NewEncoder(conn1)
 	enc2 := gob.NewEncoder(conn2)
 
 	if err := enc1.Encode(Player(1)); err != nil {
-		panic(err)
+		return err
 	}
 	if err := enc2.Encode(Player(2)); err != nil {
-		panic(err)
+		return err
 	}
 
 	draw := func(game *Game) error {
@@ -72,20 +73,14 @@ func serveGame(conn1 io.ReadWriteCloser, conn2 io.ReadWriteCloser, gameId int) {
 		return nil
 	}
 
-	log.Println("Starting game")
 	cmdQueue := make(chan Command)
 
 	go readCommands(conn1, cmdQueue)
 	go readCommands(conn2, cmdQueue)
 
-	gameControl(cmdQueue, model, draw)
+	model.Run(cmdQueue, draw)
 
-	if err := conn1.Close(); err != nil {
-		log.Println(err)
-	}
-	if err := conn2.Close(); err != nil {
-		log.Println(err)
-	}
+	return nil
 }
 
 func clientGame(port uint, draw func(*Game) error) error {
@@ -101,17 +96,6 @@ func clientGame(port uint, draw func(*Game) error) error {
 	if err != nil {
 		return err
 	}
-
-	cmdQueue := make(chan Command)
-	go func() {
-		defer conn.Close()
-		enc := gob.NewEncoder(conn)
-		for cmd := range cmdQueue {
-			if err := enc.Encode(cmd); err != nil {
-				return
-			}
-		}
-	}()
 
 	var player Player
 	var game Game
@@ -131,7 +115,9 @@ func clientGame(port uint, draw func(*Game) error) error {
 		return err
 	}
 
+	cmdQueue := make(chan Command)
 	go termboxInput(player, &game, cmdQueue)
+	go netSendCommand(conn, cmdQueue)
 
 	for {
 		err := dec.Decode(&game)

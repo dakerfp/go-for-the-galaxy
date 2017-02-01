@@ -6,8 +6,11 @@ import (
 
 const animationSpeed = 10 * time.Millisecond
 
-func gameControl(cmdQueue chan Command, game *Game, draw func(*Game) error) {
+type GameInterface interface {
+	Run(cmdQueue chan Command, draw func(*Game) error)
+}
 
+func (game *Game) Run(cmdQueue chan Command, draw func(*Game) error) {
 	fallingTimer := time.NewTicker(animationSpeed)
 
 	var cmds []Command

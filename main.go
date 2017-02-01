@@ -38,5 +38,5 @@ func main() {
 	game := NewDefaultGame()
 	cmdQueue := make(chan Command)
 	go termboxInput(1, game, cmdQueue)
-	gameControl(cmdQueue, game, termboxDraw)
+	game.Run(cmdQueue, termboxDraw)
 }
