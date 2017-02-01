@@ -157,18 +157,3 @@ func (g *Game) CountPlanetsByPlayer() map[Player]int {
 	}
 	return count
 }
-
-func (g *Game) Probe(x int, y int) *Planet {
-	mouse := Vec2{float32(x), float32(y)}
-	var min *Planet
-	minDist := 100000.0
-	for label, planet := range g.Planets {
-		d := dist(mouse, planet.Center)
-		if d < minDist {
-			minDist = d
-			min = planet
-			min.Id = label // XXX
-		}
-	}
-	return min
-}

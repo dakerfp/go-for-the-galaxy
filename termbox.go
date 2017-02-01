@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-func termboxInput(player Player, game *Game, cmds chan Command) {
+func termboxInput(player Player, game GameInterface, cmds chan Command) {
 	defer close(cmds)
 	var from *Planet
 	for {

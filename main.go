@@ -2,7 +2,8 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"net"
 
 	"github.com/nsf/termbox-go"
 )
@@ -19,24 +20,33 @@ func main() {
 	if *serverFlag {
 		serveGames(*portFlag)
 		return
-	} else if *clientFlag {
-		err := clientGame(*portFlag, termboxDraw)
-		if err != nil {
-			log.Println(err)
-		}
-		return
 	}
 
-	err := termbox.Init()
-	if err != nil {
+	var model GameInterface
+	if *clientFlag {
+		conn, err := net.Dial("tcp", fmt.Sprintf(":%d", *portFlag))
+		if err != nil {
+			panic(err)
+		}
+		defer conn.Close()
+		model = &ProxyGame{RW: conn}
+	} else {
+		model = NewDefaultGame()
+	}
+
+	// Initializing termbox
+	if err := termbox.Init(); err != nil {
 		panic(err)
 	}
-
 	defer termbox.Close()
 	termbox.SetInputMode(termbox.InputMouse)
 
-	game := NewDefaultGame()
+	// Setup & Run game
+	player, err := model.Player()
+	if err != nil {
+		panic(err)
+	}
 	cmdQueue := make(chan Command)
-	go termboxInput(1, game, cmdQueue)
-	game.Run(cmdQueue, termboxDraw)
+	go termboxInput(player, model, cmdQueue)
+	model.Run(cmdQueue, termboxDraw)
 }

@@ -7,16 +7,23 @@ import (
 const animationSpeed = 10 * time.Millisecond
 
 type GameInterface interface {
-	Run(cmdQueue chan Command, draw func(*Game) error)
+	Player() (Player, error)
+	Run(cmdQueue chan Command, draw func(*Game) error) error
+	Probe(x, y int) *Planet
 }
 
-func (game *Game) Run(cmdQueue chan Command, draw func(*Game) error) {
+func (game *Game) Player() (Player, error) {
+	return Player(1), nil // Local player
+}
+
+func (game *Game) Run(cmdQueue chan Command, draw func(*Game) error) error {
 	fallingTimer := time.NewTicker(animationSpeed)
 
 	var cmds []Command
-	draw(game)
+	if err := draw(game); err != nil {
+		return err
+	}
 
-mainloop:
 	for {
 		select {
 		case cmd := <-cmdQueue:
@@ -24,7 +31,7 @@ mainloop:
 			case CommandSendFleet:
 				cmds = append(cmds, cmd)
 			case CommandQuit:
-				break mainloop
+				return nil
 			}
 
 		case <-fallingTimer.C:
@@ -32,9 +39,28 @@ mainloop:
 			cmds = nil
 			// Sole player on
 			if len(game.CountPlanetsByPlayer()) == 1 {
-				break mainloop
+				return nil
 			}
-			draw(game)
+			if err := draw(game); err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
+}
+
+func (g *Game) Probe(x int, y int) *Planet {
+	mouse := Vec2{float32(x), float32(y)}
+	var min *Planet
+	minDist := 100000.0
+	for label, planet := range g.Planets {
+		d := dist(mouse, planet.Center)
+		if d < minDist {
+			minDist = d
+			min = planet
+			min.Id = label // XXX
+		}
+	}
+	return min
 }
