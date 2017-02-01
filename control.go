@@ -7,19 +7,22 @@ import (
 const animationSpeed = 10 * time.Millisecond
 
 func gameControl(cmdQueue chan Command, game *Game, draw func(*Game) error) {
-	const animationSpeed = 10 * time.Millisecond
 
 	fallingTimer := time.NewTicker(animationSpeed)
 
-	draw(game)
-
 	var cmds []Command
+	draw(game)
 
 mainloop:
 	for {
 		select {
 		case cmd := <-cmdQueue:
-			cmds = append(cmds, cmd)
+			switch cmd.CommandType {
+			case CommandSendFleet:
+				cmds = append(cmds, cmd)
+			case CommandQuit:
+				break mainloop
+			}
 
 		case <-fallingTimer.C:
 			game.Tick(cmds)

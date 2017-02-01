@@ -35,7 +35,8 @@ func main() {
 	defer termbox.Close()
 	termbox.SetInputMode(termbox.InputMouse)
 
-	model := NewDefaultGame()
-
-	termboxControl(model, termboxDraw)
+	game := NewDefaultGame()
+	cmdQueue := make(chan Command)
+	go termboxInput(1, game, cmdQueue)
+	gameControl(cmdQueue, game, termboxDraw)
 }

@@ -7,11 +7,10 @@ import (
 	"io"
 	"log"
 	"net"
-	"time"
 )
 
-func tcpListenCommands(conn net.Conn, cmds chan Command) {
-	dec := gob.NewDecoder(conn)
+func readCommands(r io.Reader, cmds chan Command) {
+	dec := gob.NewDecoder(r)
 	for {
 		var cmd Command
 		err := dec.Decode(&cmd)
@@ -22,35 +21,6 @@ func tcpListenCommands(conn net.Conn, cmds chan Command) {
 			return
 		}
 		cmds <- cmd
-	}
-}
-
-func tcpControl(conn1 net.Conn, conn2 net.Conn, game *Game, draw func(*Game) error) {
-	const animationSpeed = 10 * time.Millisecond
-	var cmds []Command
-
-	fallingTimer := time.NewTicker(animationSpeed)
-	cmdQueue := make(chan Command)
-	go tcpListenCommands(conn1, cmdQueue)
-	go tcpListenCommands(conn2, cmdQueue)
-
-	draw(game)
-
-mainloop:
-	for {
-		select {
-		case cmd := <-cmdQueue:
-			cmds = append(cmds, cmd)
-
-		case <-fallingTimer.C:
-			game.Tick(cmds)
-			cmds = nil
-			// Sole player on
-			if len(game.CountPlanetsByPlayer()) == 1 {
-				break mainloop
-			}
-			draw(game)
-		}
 	}
 }
 
@@ -75,7 +45,7 @@ func serveGames(port uint) {
 	}
 }
 
-func serveGame(conn1 net.Conn, conn2 net.Conn, gameId int) {
+func serveGame(conn1 io.ReadWriteCloser, conn2 io.ReadWriteCloser, gameId int) {
 	defer log.Println("Ending game ", gameId)
 	log.Println("Starting game ", gameId)
 
@@ -103,7 +73,12 @@ func serveGame(conn1 net.Conn, conn2 net.Conn, gameId int) {
 	}
 
 	log.Println("Starting game")
-	tcpControl(conn1, conn2, model, draw)
+	cmdQueue := make(chan Command)
+
+	go readCommands(conn1, cmdQueue)
+	go readCommands(conn2, cmdQueue)
+
+	gameControl(cmdQueue, model, draw)
 
 	if err := conn1.Close(); err != nil {
 		log.Println(err)

@@ -67,7 +67,15 @@ type Game struct {
 	Winner  Player
 }
 
+type CommandType int
+
+const (
+	CommandSendFleet CommandType = iota
+	CommandQuit
+)
+
 type Command struct {
+	CommandType
 	From   string
 	To     string
 	Units  float32

@@ -4,64 +4,7 @@ import (
 	"github.com/nsf/termbox-go"
 
 	"strconv"
-	"time"
 )
-
-func termboxControl(game *Game, draw func(*Game) error) error {
-	var cmds []Command
-	var from *Planet
-
-	fallingTimer := time.NewTicker(animationSpeed)
-	eventQueue := make(chan termbox.Event)
-	go func() {
-		for {
-			eventQueue <- termbox.PollEvent()
-		}
-	}()
-
-	err := draw(game)
-	if err != nil {
-		return err
-	}
-
-mainloop:
-	for {
-		select {
-		case ev := <-eventQueue:
-			switch ev.Type {
-			case termbox.EventKey:
-				switch ev.Key {
-				case termbox.KeyEsc, termbox.KeyCtrlC, termbox.KeyCtrlD:
-					return nil
-				}
-
-			case termbox.EventMouse:
-				if ev.Key == termbox.MouseRelease {
-					if from == nil {
-						from = game.Probe(ev.MouseX, ev.MouseY)
-					} else {
-						to := game.Probe(ev.MouseX, ev.MouseY)
-						cmds = []Command{Command{from.Id, to.Id, 50, 1}}
-						from = nil
-					}
-				}
-			}
-
-		case <-fallingTimer.C:
-			game.Tick(cmds)
-			cmds = nil
-			// Sole player on
-			if len(game.CountPlanetsByPlayer()) == 1 {
-				break mainloop
-			}
-			err := draw(game)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
 
 var from *Planet
 
@@ -73,6 +16,7 @@ func termboxInput(player Player, game *Game, cmds chan Command) {
 		case termbox.EventKey:
 			switch ev.Key {
 			case termbox.KeyEsc, termbox.KeyCtrlC, termbox.KeyCtrlD:
+				cmds <- Command{CommandType: CommandQuit}
 				return
 			}
 
@@ -82,7 +26,7 @@ func termboxInput(player Player, game *Game, cmds chan Command) {
 					from = game.Probe(ev.MouseX, ev.MouseY)
 				} else {
 					to := game.Probe(ev.MouseX, ev.MouseY)
-					cmds <- Command{from.Id, to.Id, from.Units / 2, player}
+					cmds <- Command{CommandSendFleet, from.Id, to.Id, from.Units / 2, player}
 					from = nil
 				}
 			}
