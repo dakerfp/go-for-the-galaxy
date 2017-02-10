@@ -44,11 +44,12 @@ func norm(v Vec2) Vec2 {
 }
 
 type Planet struct {
-	Id     string
-	Center Vec2
-	Size   float32
-	Units  float32
-	Player Player
+	Id       string
+	Center   Vec2
+	Size     float32
+	Units    float32
+	Capacity float32
+	Player   Player
 }
 
 type Fleet struct {
@@ -143,7 +144,10 @@ func (g *Game) Tick(cmds []Command) {
 
 	for _, planet := range g.Planets {
 		if planet.Player != 0 {
-			planet.Units += planet.Size * 0.05 // Speed multiplier
+			planet.Units += planet.Size * 0.05  // Speed multiplier
+			if planet.Units > planet.Capacity { // If planet capacity is exceeded, then it is neutralized
+				planet.Player = 0
+			}
 		}
 	}
 }
