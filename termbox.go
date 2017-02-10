@@ -9,6 +9,7 @@ import (
 func termboxInput(player Player, game GameInterface, cmds chan Command) {
 	defer close(cmds)
 	var from *Planet
+	fraction := float32(0.5)
 	for {
 		ev := termbox.PollEvent()
 		switch ev.Type {
@@ -19,13 +20,20 @@ func termboxInput(player Player, game GameInterface, cmds chan Command) {
 				return
 			}
 
+			// Use 0 - 9 keys to define % of ships cast from each planet
+			if ev.Ch == '0' {
+				fraction = 1.0
+			} else if ev.Ch >= '1' && ev.Ch <= '9' {
+				fraction = float32(ev.Ch-'0') / 10.0
+			}
+
 		case termbox.EventMouse:
 			if ev.Key == termbox.MouseRelease {
 				if from == nil {
 					from = game.Probe(ev.MouseX, ev.MouseY)
 				} else {
 					to := game.Probe(ev.MouseX, ev.MouseY)
-					cmds <- Command{CommandSendFleet, from.Id, to.Id, from.Units / 2, player}
+					cmds <- Command{CommandSendFleet, from.Id, to.Id, from.Units * fraction, player}
 					from = nil
 				}
 			}
