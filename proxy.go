@@ -45,8 +45,6 @@ func (p *ProxyGame) Run(cmdQueue chan Command, draw func(*Game) error) error {
 			return err
 		}
 	}
-
-	return nil
 }
 
 func (p *ProxyGame) Probe(x, y int) *Planet {

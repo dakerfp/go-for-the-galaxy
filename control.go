@@ -44,8 +44,6 @@ func (game *Game) Run(cmdQueue chan Command, draw func(*Game) error) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func (g *Game) Probe(x int, y int) *Planet {
