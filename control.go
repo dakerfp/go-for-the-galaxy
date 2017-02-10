@@ -27,12 +27,10 @@ func (game *Game) Run(cmdQueue chan Command, draw func(*Game) error) error {
 	for {
 		select {
 		case cmd := <-cmdQueue:
-			switch cmd.CommandType {
-			case CommandSendFleet:
-				cmds = append(cmds, cmd)
-			case CommandQuit:
-				return nil
+			if cmd.CommandType == CommandQuit {
+				break
 			}
+			cmds = append(cmds, cmd)
 
 		case <-fallingTimer.C:
 			game.Tick(cmds)

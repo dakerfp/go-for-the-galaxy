@@ -66,12 +66,15 @@ type Game struct {
 	Planets map[string]*Planet
 	Fleets  []Fleet
 	Winner  Player
+	links   []Command
 }
 
 type CommandType int
 
 const (
 	CommandSendFleet CommandType = iota
+	CommandCreateLink
+	CommandDestroyLink
 	CommandQuit
 )
 
@@ -83,38 +86,98 @@ type Command struct {
 	Player Player
 }
 
+func (g *Game) SendFleet(cmd Command) bool {
+	to, ok := g.Planets[cmd.To]
+	if !ok {
+		return false
+	}
+
+	from, ok := g.Planets[cmd.From]
+	if cmd.Player != from.Player {
+		return false
+	}
+
+	if cmd.Units > from.Units {
+		return false
+	}
+
+	fleet := Fleet{
+		Player: from.Player,
+		To:     cmd.To,
+		Pos:    from.Center,
+		Units:  cmd.Units,
+		Vel:    mult(norm(sub(to.Center, from.Center)), 0.1),
+		Dest:   to.Center,
+	}
+	g.Fleets = append(g.Fleets, fleet)
+	from.Units -= cmd.Units
+	g.Planets[cmd.From] = from
+	return true
+}
+
+func (g *Game) CreateLink(cmd Command) {
+	_, ok := g.Planets[cmd.To]
+	if !ok {
+		return
+	}
+
+	from, ok := g.Planets[cmd.From]
+	if !ok {
+		return
+	}
+
+	if cmd.Player != from.Player {
+		return
+	}
+
+	cmd.CommandType = CommandSendFleet
+	g.links = append(g.links, cmd)
+}
+
+func (g *Game) DestroyLink(cmd Command) {
+	_, ok := g.Planets[cmd.To]
+	if !ok {
+		return
+	}
+
+	from, ok := g.Planets[cmd.From]
+	if !ok {
+		return
+	}
+
+	if cmd.Player != from.Player {
+		return
+	}
+
+	var newLinks []Command
+	for _, link := range g.links {
+		if link.From != cmd.From ||
+			link.To != cmd.To {
+			newLinks = append(newLinks, link)
+		}
+	}
+	g.links = newLinks
+}
+
 func (g *Game) Tick(cmds []Command) {
 	for _, cmd := range cmds {
-		from, ok := g.Planets[cmd.From]
-		if !ok {
-			continue
+		switch cmd.CommandType {
+		case CommandSendFleet:
+			g.SendFleet(cmd)
+		case CommandCreateLink:
+			g.CreateLink(cmd)
+		case CommandDestroyLink:
+			g.DestroyLink(cmd)
 		}
-
-		to, ok := g.Planets[cmd.To]
-		if !ok {
-			continue
-		}
-
-		if cmd.Player != from.Player {
-			continue
-		}
-
-		if cmd.Units > from.Units {
-			continue
-		}
-
-		fleet := Fleet{
-			Player: from.Player,
-			To:     cmd.To,
-			Pos:    from.Center,
-			Units:  cmd.Units,
-			Vel:    mult(norm(sub(to.Center, from.Center)), 0.1),
-			Dest:   to.Center,
-		}
-		g.Fleets = append(g.Fleets, fleet)
-		from.Units -= cmd.Units
-		g.Planets[cmd.From] = from
 	}
+
+	var newLinks []Command
+	for _, cmd := range g.links {
+		if g.SendFleet(cmd) {
+			newLinks = append(newLinks, cmd)
+		}
+	}
+	g.links = newLinks
 
 	oldFleets := g.Fleets
 	newFleets := g.Fleets[:0]

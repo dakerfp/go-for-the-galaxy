@@ -10,6 +10,8 @@ func termboxInput(player Player, game GameInterface, cmds chan Command) {
 	defer close(cmds)
 	var from *Planet
 	fraction := float32(0.5)
+	var createLink bool
+	var destroyLink bool
 	for {
 		ev := termbox.PollEvent()
 		switch ev.Type {
@@ -25,6 +27,15 @@ func termboxInput(player Player, game GameInterface, cmds chan Command) {
 				fraction = 1.0
 			} else if ev.Ch >= '1' && ev.Ch <= '9' {
 				fraction = float32(ev.Ch-'0') / 10.0
+			} else if ev.Ch == 'l' {
+				createLink = true
+				destroyLink = false
+			} else if ev.Ch == 'q' {
+				createLink = false
+				destroyLink = false
+			} else if ev.Ch == 'd' {
+				createLink = false
+				destroyLink = true
 			}
 
 		case termbox.EventMouse:
@@ -33,7 +44,16 @@ func termboxInput(player Player, game GameInterface, cmds chan Command) {
 					from = game.Probe(ev.MouseX, ev.MouseY)
 				} else {
 					to := game.Probe(ev.MouseX, ev.MouseY)
-					cmds <- Command{CommandSendFleet, from.Id, to.Id, from.Units * fraction, player}
+					switch {
+					case createLink:
+						cmds <- Command{CommandCreateLink, from.Id, to.Id, from.Size * 0.05, player}
+						createLink = false
+					case destroyLink:
+						cmds <- Command{CommandDestroyLink, from.Id, to.Id, 0, player}
+						destroyLink = false
+					default:
+						cmds <- Command{CommandSendFleet, from.Id, to.Id, from.Units * fraction, player}
+					}
 					from = nil
 				}
 			}
