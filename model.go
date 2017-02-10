@@ -50,6 +50,7 @@ type Planet struct {
 	Units    float32
 	Capacity float32
 	Player   Player
+	Links    []Command
 }
 
 type Fleet struct {
@@ -66,7 +67,6 @@ type Game struct {
 	Planets map[string]*Planet
 	Fleets  []Fleet
 	Winner  Player
-	links   []Command
 }
 
 type CommandType int
@@ -131,7 +131,7 @@ func (g *Game) CreateLink(cmd Command) {
 	}
 
 	cmd.CommandType = CommandSendFleet
-	g.links = append(g.links, cmd)
+	from.Links = append(from.Links, cmd)
 }
 
 func (g *Game) DestroyLink(cmd Command) {
@@ -150,13 +150,13 @@ func (g *Game) DestroyLink(cmd Command) {
 	}
 
 	var newLinks []Command
-	for _, link := range g.links {
+	for _, link := range from.Links {
 		if link.From != cmd.From ||
 			link.To != cmd.To {
 			newLinks = append(newLinks, link)
 		}
 	}
-	g.links = newLinks
+	from.Links = newLinks
 }
 
 func (g *Game) Tick(cmds []Command) {
@@ -171,13 +171,15 @@ func (g *Game) Tick(cmds []Command) {
 		}
 	}
 
-	var newLinks []Command
-	for _, cmd := range g.links {
-		if g.SendFleet(cmd) {
-			newLinks = append(newLinks, cmd)
+	for _, planet := range g.Planets {
+		var newLinks []Command
+		for _, cmd := range planet.Links {
+			if g.SendFleet(cmd) {
+				newLinks = append(newLinks, cmd)
+			}
 		}
+		planet.Links = newLinks
 	}
-	g.links = newLinks
 
 	oldFleets := g.Fleets
 	newFleets := g.Fleets[:0]
