@@ -25,6 +25,13 @@ func main() {
 		return
 	}
 
+	// Initializing termbox
+	if err := termbox.Init(); err != nil {
+		panic(err)
+	}
+	defer termbox.Close()
+	termbox.SetInputMode(termbox.InputMouse)
+
 	var model GameInterface
 	if *clientFlag {
 		conn, err := net.Dial("tcp", fmt.Sprintf(":%d", *portFlag))
@@ -34,15 +41,9 @@ func main() {
 		defer conn.Close()
 		model = &ProxyGame{RW: conn}
 	} else {
-		model = NewDefaultGame()
+		w, h := termbox.Size()
+		model = NewRandomMap(float32(w), float32(h))
 	}
-
-	// Initializing termbox
-	if err := termbox.Init(); err != nil {
-		panic(err)
-	}
-	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputMouse)
 
 	// Setup & Run game
 	player, err := model.Player()
