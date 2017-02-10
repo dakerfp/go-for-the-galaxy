@@ -43,20 +43,21 @@ func termboxInput(player Player, game GameInterface, cmds chan Command) {
 			if ev.Key == termbox.MouseRelease {
 				if from == nil {
 					from = game.Probe(ev.MouseX, ev.MouseY)
-				} else {
-					to := game.Probe(ev.MouseX, ev.MouseY)
-					switch {
-					case createLink:
-						cmds <- Command{CommandCreateLink, from.Id, to.Id, from.Size * 0.05, player}
-						createLink = false
-					case destroyLink:
-						cmds <- Command{CommandDestroyLink, from.Id, to.Id, 0, player}
-						destroyLink = false
-					default:
-						cmds <- Command{CommandSendFleet, from.Id, to.Id, from.Units * fraction, player}
-					}
-					from = nil
+					break
 				}
+
+				to := game.Probe(ev.MouseX, ev.MouseY)
+				switch {
+				case createLink:
+					cmds <- Command{CommandCreateLink, from.Id, to.Id, from.Size * 0.05, player}
+					createLink = false
+				case destroyLink:
+					cmds <- Command{CommandDestroyLink, from.Id, to.Id, 0, player}
+					destroyLink = false
+				default:
+					cmds <- Command{CommandSendFleet, from.Id, to.Id, from.Units * fraction, player}
+				}
+				from = nil
 			}
 		}
 	}
