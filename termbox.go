@@ -23,17 +23,18 @@ func termboxInput(player Player, game GameInterface, cmds chan Command) {
 			}
 
 			// Use 0 - 9 keys to define % of ships cast from each planet
-			if ev.Ch == '0' {
+			switch ev.Ch {
+			case '0':
 				fraction = 1.0
-			} else if ev.Ch >= '1' && ev.Ch <= '9' {
+			case '1', '2', '3', '4', '5', '6', '7', '8', '9':
 				fraction = float32(ev.Ch-'0') / 10.0
-			} else if ev.Ch == 'l' {
+			case 'l':
 				createLink = true
 				destroyLink = false
-			} else if ev.Ch == 'q' {
+			case 'q':
 				createLink = false
 				destroyLink = false
-			} else if ev.Ch == 'd' {
+			case 'd':
 				createLink = false
 				destroyLink = true
 			}
