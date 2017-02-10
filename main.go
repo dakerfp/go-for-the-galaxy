@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"net"
 
 	"github.com/nsf/termbox-go"
@@ -12,10 +13,12 @@ var (
 	serverFlag = flag.Bool("server", false, "decide if it will run as server or as client")
 	clientFlag = flag.Bool("client", false, "decide if it will run as server or as client")
 	portFlag   = flag.Uint("port", 7771, "port")
+	seedFlag   = flag.Int64("seed", 0, "random seed")
 )
 
 func main() {
 	flag.Parse()
+	rand.Seed(*seedFlag)
 
 	if *serverFlag {
 		startGameServer(*portFlag)
