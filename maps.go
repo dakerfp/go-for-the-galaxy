@@ -85,34 +85,7 @@ func NewSquareGameMap() *Game {
 }
 
 func NewRandomMap(width, height float32) *Game {
-	g := &Game{
-		Planets: map[string]*Planet{
-			"a": &Planet{
-				Center: Vec2{5, 5},
-				Player: 1,
-				Units:  100,
-				Size:   2,
-			},
-			"b": &Planet{
-				Center: Vec2{20, 5},
-				Player: 0,
-				Units:  100,
-				Size:   1,
-			},
-			"c": &Planet{
-				Center: Vec2{5, 20},
-				Player: 0,
-				Units:  100,
-				Size:   1,
-			},
-			"d": &Planet{
-				Center: Vec2{20, 20},
-				Player: 2,
-				Units:  100,
-				Size:   2,
-			},
-		},
-	}
+	g := &Game{Planets: map[string]*Planet{}}
 
 	letters := "cdefghijklmno"
 
