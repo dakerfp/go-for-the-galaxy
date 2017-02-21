@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/gob"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -59,8 +58,8 @@ func readCommands(r io.Reader, cmds chan Command) {
 	}
 }
 
-func startGameServer(port uint) {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+func startGameServer(addr string) {
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return
 	}

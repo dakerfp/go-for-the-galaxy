@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"math/rand"
 	"net"
 
@@ -12,7 +11,7 @@ import (
 var (
 	serverFlag = flag.Bool("server", false, "decide if it will run as server or as client")
 	clientFlag = flag.Bool("client", false, "decide if it will run as server or as client")
-	portFlag   = flag.Uint("port", 7771, "port")
+	addrFlag   = flag.String("addr", ":7771", "the server address")
 	seedFlag   = flag.Int64("seed", 0, "random seed")
 )
 
@@ -21,7 +20,7 @@ func main() {
 	rand.Seed(*seedFlag)
 
 	if *serverFlag {
-		startGameServer(*portFlag)
+		startGameServer(*addrFlag)
 		return
 	}
 
@@ -34,7 +33,7 @@ func main() {
 
 	var model GameInterface
 	if *clientFlag {
-		conn, err := net.Dial("tcp", fmt.Sprintf(":%d", *portFlag))
+		conn, err := net.Dial("tcp", *addrFlag)
 		if err != nil {
 			panic(err)
 		}
