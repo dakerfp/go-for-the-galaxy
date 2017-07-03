@@ -24,7 +24,7 @@ go build ./cmd/client
 Run the server:
 
 ```bash
-./client
+./server
 ```
 
 Connect clients to the server:
