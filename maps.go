@@ -1,4 +1,4 @@
-package main
+package galaxy
 
 import (
 	"math/rand"
