@@ -47,18 +47,20 @@ func (room *GameRoom) Serve(conns ...io.ReadWriteCloser) error {
 		if err := enc.Encode(galaxy.Player(i + 1)); err != nil {
 			return err
 		}
-
 		go readCommands(conn, cmdQueue)
 	}
 
-	return model.Run(cmdQueue, func(game galaxy.Game) error {
+	draw := make(chan galaxy.Game)
+	go model.Run(cmdQueue, draw)
+
+	for game := range draw {
 		for _, enc := range encs {
 			if err := enc.Encode(&game); err != nil {
 				return err
 			}
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func readCommands(r io.Reader, cmds chan galaxy.Command) {

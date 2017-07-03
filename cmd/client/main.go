@@ -44,8 +44,14 @@ func main() {
 	}
 
 	cmdQueue := make(chan galaxy.Command)
+	draw := make(chan galaxy.Game)
 	go termboxInput(player, model, cmdQueue)
-	model.Run(cmdQueue, termboxDraw)
+	go model.Run(cmdQueue, draw)
+	for g := range draw {
+		if err := termboxDraw(g); err != nil {
+			panic(err)
+		}
+	}
 }
 
 type ProxyGame struct {
@@ -59,7 +65,9 @@ func (p *ProxyGame) Player() (player galaxy.Player, err error) {
 	return
 }
 
-func (p *ProxyGame) Run(cmdQueue chan galaxy.Command, draw func(galaxy.Game) error) error {
+func (p *ProxyGame) Run(cmdQueue <-chan galaxy.Command, draw chan<- galaxy.Game) error {
+	defer close(draw)
+
 	dec := json.NewDecoder(p.RW)
 
 	go func() { // Send commands
@@ -75,9 +83,7 @@ func (p *ProxyGame) Run(cmdQueue chan galaxy.Command, draw func(galaxy.Game) err
 		err := dec.Decode(&p.game)
 		switch err {
 		case nil:
-			if err = draw(p.game); err != nil {
-				return err
-			}
+			draw <- p.game
 		case io.EOF:
 			return nil
 		default:

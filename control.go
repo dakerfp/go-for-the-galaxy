@@ -8,7 +8,7 @@ const animationSpeed = 50 * time.Millisecond
 
 type GameInterface interface {
 	Player() (Player, error)
-	Run(cmdQueue chan Command, draw func(Game) error) error
+	Run(cmdQueue <-chan Command, draw chan<- Game) error
 	Probe(x, y int) *Planet
 }
 
@@ -16,14 +16,14 @@ func (game *Game) Player() (Player, error) {
 	return Player(1), nil // Local player
 }
 
-func (game *Game) Run(cmdQueue chan Command, draw func(Game) error) error {
+func (game *Game) Run(cmdQueue <-chan Command, draw chan<- Game) error {
+	defer close(draw)
+
 	fallingTimer := time.NewTicker(animationSpeed)
 
-	var cmds []Command
-	if err := draw(*game); err != nil {
-		return err
-	}
+	draw <- *game
 
+	var cmds []Command
 	for {
 		select {
 		case cmd := <-cmdQueue:
@@ -39,9 +39,7 @@ func (game *Game) Run(cmdQueue chan Command, draw func(Game) error) error {
 			if len(game.CountPlanetsByPlayer()) == 1 {
 				return nil
 			}
-			if err := draw(*game); err != nil {
-				return err
-			}
+			draw <- *game
 		}
 	}
 }
