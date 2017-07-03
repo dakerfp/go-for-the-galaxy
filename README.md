@@ -14,26 +14,27 @@ An abstract multiplayer RTS inspired on Galcon written in Golang.
 How to run
 ----------
 
-Build it:
+Build the server and the client:
 
 ```bash
-go build .
+go build ./cmd/server
+go build ./cmd/client
 ```
 
 Run the server:
 
 ```bash
-./go-for-the-galaxy -server
+./client
 ```
 
 Connect clients to the server:
 
 ```bash
-./go-for-the-galaxy -client -addr $SERVER_ADDR:7771
+./client -addr IPADDR:PORT
 ```
 
 If the server is running locally, simply do:
 
 ```bash
-./go-for-the-galaxy -client
+./client
 ```

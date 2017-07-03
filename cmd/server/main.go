@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/gob"
+	"encoding/json"
 	"flag"
 	"io"
 	"log"
@@ -38,10 +38,11 @@ func (room *GameRoom) Serve(conns ...io.ReadWriteCloser) error {
 	}()
 
 	model := galaxy.NewRandomMap(60, 50)
-	encs := make([]*gob.Encoder, len(conns))
+	encs := make([]*json.Encoder, len(conns))
 	cmdQueue := make(chan galaxy.Command)
+	defer close(cmdQueue)
 	for i, conn := range conns {
-		enc := gob.NewEncoder(conn)
+		enc := json.NewEncoder(conn)
 		encs[i] = enc
 		if err := enc.Encode(galaxy.Player(i + 1)); err != nil {
 			return err
@@ -50,9 +51,9 @@ func (room *GameRoom) Serve(conns ...io.ReadWriteCloser) error {
 		go readCommands(conn, cmdQueue)
 	}
 
-	return model.Run(cmdQueue, func(game *galaxy.Game) error {
+	return model.Run(cmdQueue, func(game galaxy.Game) error {
 		for _, enc := range encs {
-			if err := enc.Encode(*game); err != nil {
+			if err := enc.Encode(&game); err != nil {
 				return err
 			}
 		}
@@ -61,9 +62,7 @@ func (room *GameRoom) Serve(conns ...io.ReadWriteCloser) error {
 }
 
 func readCommands(r io.Reader, cmds chan galaxy.Command) {
-	defer close(cmds)
-
-	dec := gob.NewDecoder(r)
+	dec := json.NewDecoder(r)
 	for {
 		var cmd galaxy.Command
 		err := dec.Decode(&cmd)

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/gob"
+	"encoding/json"
 	"flag"
 	"io"
 	"math/rand"
@@ -54,16 +54,16 @@ type ProxyGame struct {
 }
 
 func (p *ProxyGame) Player() (player galaxy.Player, err error) {
-	dec := gob.NewDecoder(p.RW)
+	dec := json.NewDecoder(p.RW)
 	err = dec.Decode(&player)
 	return
 }
 
-func (p *ProxyGame) Run(cmdQueue chan galaxy.Command, draw func(*galaxy.Game) error) error {
-	dec := gob.NewDecoder(p.RW)
+func (p *ProxyGame) Run(cmdQueue chan galaxy.Command, draw func(galaxy.Game) error) error {
+	dec := json.NewDecoder(p.RW)
 
 	go func() { // Send commands
-		enc := gob.NewEncoder(p.RW)
+		enc := json.NewEncoder(p.RW)
 		for cmd := range cmdQueue {
 			if err := enc.Encode(cmd); err != nil {
 				return
@@ -75,7 +75,7 @@ func (p *ProxyGame) Run(cmdQueue chan galaxy.Command, draw func(*galaxy.Game) er
 		err := dec.Decode(&p.game)
 		switch err {
 		case nil:
-			if err = draw(&p.game); err != nil {
+			if err = draw(p.game); err != nil {
 				return err
 			}
 		case io.EOF:
@@ -155,7 +155,7 @@ var playerColors = []termbox.Attribute{
 	termbox.ColorRed,
 }
 
-func termboxDraw(g *galaxy.Game) error {
+func termboxDraw(g galaxy.Game) error {
 	termbox.Clear(backgroundColor, backgroundColor)
 	for _, fleet := range g.Fleets {
 		if fleet.Dead {
